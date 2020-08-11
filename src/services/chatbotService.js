@@ -21,7 +21,7 @@ let sendMessageWelcomeNewUser = (sender_psid) => {
                 "attachment": {
                     "type": "image",
                     "payload": {
-                        "url": "https://bit.ly/imageWelcome"
+                        "url": "https://media.giphy.com/media/OkJat1YNdoD3W/giphy.gif"
                     }
                 }
             };
@@ -46,7 +46,7 @@ let sendMessageWelcomeNewUser = (sender_psid) => {
                     },
                     {
                         "content_type": "text",
-                        "title": "Talk to an agent",
+                        "title": "Talk to an Agent",
                         "payload": "TALK_AGENT",
                     },
                 ]

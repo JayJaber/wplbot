@@ -6,7 +6,15 @@ import templateMessage from "../services/templateMessage";
 const MY_VERIFY_TOKEN = process.env.MY_VERIFY_TOKEN;
 
 let call = "";//me
+let step = 1;
+
+let setCall = (val) => {
+    call = val;
+};
+
 let email;//me
+
+let name="";//me
 
 let getHomePage = (req, res) => {
     return res.render("homepage.ejs")
@@ -72,7 +80,7 @@ let postWebhook = (req, res) => {
             // pass the event to the appropriate handler function
             if (webhook_event.message) {
 
-                if (webhook_event.message.text && call!="") {
+                if (webhook_event.message.text && call!=="") {
 
                     switch (call) {
                         case "SUB_EMAIL":
@@ -80,6 +88,9 @@ let postWebhook = (req, res) => {
                             break;
                         case "TALK_AGENT":
                             handleTalkAgent(sender_psid, webhook_event.message);
+                            break;
+                        case "TALK_AGENT2":
+                            handleTalkAgent2(sender_psid, webhook_event.message);
                             break;
                         case "ORDER_LOOKUP":
                             handleSubEmail(sender_psid, webhook_event.message);
@@ -120,6 +131,7 @@ let handleMessage = async (sender_psid, received_message) => {
 
         } else if (payload === "TALK_AGENT") {
             call="TALK_AGENT";
+            step=1;
             await chatbotService.sendTalkAgent(sender_psid);
             //await chatbotService.requestTalkToAgent(sender_psid);
         }
@@ -146,6 +158,40 @@ let handleMessage = async (sender_psid, received_message) => {
                     "payload":{
                         "template_type":"button",
                         "text":"Hello there! If you need any assistance click the button below.",
+                        "buttons":[
+                            {
+                                "type": "postback",
+                                "title": "Main Menu",
+                                "payload": "BACK_TO_MAIN_MENU"
+                            }
+                        ]
+                    }
+                }
+            }
+        } else if (thanks && thanks.confidence > 0.8) {
+            response = {
+                "attachment":{
+                    "type":"template",
+                    "payload":{
+                        "template_type":"button",
+                        "text":"You're Welcome! Is there anything else I can help you out with?",
+                        "buttons":[
+                            {
+                                "type": "postback",
+                                "title": "Main Menu",
+                                "payload": "BACK_TO_MAIN_MENU"
+                            }
+                        ]
+                    }
+                }
+            }
+        } else if (bye && bye.confidence > 0.8) {
+            response = {
+                "attachment":{
+                    "type":"template",
+                    "payload":{
+                        "template_type":"button",
+                        "text":"Goodbye. If you need anything else, I'm always here to help.",
                         "buttons":[
                             {
                                 "type": "postback",
@@ -195,12 +241,12 @@ let handleMessage = async (sender_psid, received_message) => {
                             {
                                 "type": "postback",
                                 "title": "Yes!",
-                                "payload": "yes",
+                                "payload": "BACK_TO_MAIN_MENU",
                             },
                             {
                                 "type": "postback",
                                 "title": "No!",
-                                "payload": "no",
+                                "payload": "BACK_TO_MAIN_MENU",
                             }
                         ],
                     } ]
@@ -226,6 +272,7 @@ let handlePostback = async (sender_psid, received_postback) => {
             break;
         case "TALK_AGENT":
             call="TALK_AGENT";
+            step=1;
             await chatbotService.sendTalkAgent(sender_psid);
             //await chatbotService.requestTalkToAgent(sender_psid);
             break;
@@ -366,13 +413,77 @@ let handleSubEmail = async (sender_psid, received_message) => {
 let handleTalkAgent = async (sender_psid, received_message) => {
 
     let response;
-
+if (step===1) {
     // Check if the message contains text
     if (validateEmail(received_message.text)) {
         // Create the payload for a basic text message
-        email=received_message.text;
+        email = received_message.text;
+        //setCall("TALK_AGENT2");
+        //use ZenDesk api to open ticket with this email
 
-        //use MailChimp api to add this email
+        let ticketTemplate = {
+            "ticket": {
+                "subject": "Hello",
+                "comment": {"body": "Some question"},
+                "requester": {"locale_id": 8, "name": "Pablo", "email": "pablito@example.org"}
+            }
+        }
+
+        //if email is now successfully in the mailing list send success message
+        response = {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "button",
+                    "text": `Got it, Now what's your name?`,
+                    "buttons": [
+                        {
+                            "type": "postback",
+                            "title": "Cancel",
+                            "payload": "BACK_TO_MAIN_MENU"
+                        }
+                    ]
+                }
+            }
+        }
+
+//        setCall("TALK_AGENT2");
+        //call="TALK_AGENT2";//reset the call if email was added
+        step++;//step=2
+
+        //can add another call to collect more data ex. TALK_AGENT_getName and TALK_AGENT_getDescription
+    } else {
+        response = {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "button",
+                    "text": "Please enter a valid email.",
+                    "buttons": [
+                        {
+                            "type": "postback",
+                            "title": "Cancel",
+                            "payload": "BACK_TO_MAIN_MENU"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}else if (step===2){
+    if ((received_message.text)) {
+        // Create the payload for a basic text message
+        name=received_message.text;
+
+        //use ZenDesk api to open ticket with this email
+
+        let ticketTemplate = {
+            "ticket": {
+                "subject":   "Hello",
+                "comment":   { "body": "Some question" },
+                "requester": { "locale_id": 8, "name": "Pablo", "email": "pablito@example.org" }
+            }
+        }
 
         //if email is now successfully in the mailing list send success message
         response = {
@@ -380,7 +491,70 @@ let handleTalkAgent = async (sender_psid, received_message) => {
                 "type":"template",
                 "payload":{
                     "template_type":"button",
-                    "text": `Yeehaw Buckaroo. We will get back to: ${email} within 1-2 business days.`+"\n\nIf you would like to continue using the automated menu, use the button below.",
+                    "text": `Alright ${name}, Somebody will get back to at ${email} within 1-2 business days.`+"\n\nTo continue using the automated menu, use the button below.",
+                    "buttons":[
+                        {
+                            "type": "postback",
+                            "title": "Menu",
+                            "payload": "BACK_TO_MAIN_MENU"
+                        }
+                    ]
+                }
+            }
+        }
+//        call="";//reset the call if email was added
+//        step++;//step=3
+        //can add another call to collect more data ex. TALK_AGENT_getName and TALK_AGENT_getDescription
+    } else {
+        response = {
+            "attachment":{
+                "type":"template",
+                "payload":{
+                    "template_type":"button",
+                    "text":"Enter your name again please.",
+                    "buttons":[
+                        {
+                            "type": "postback",
+                            "title": "Cancel",
+                            "payload": "BACK_TO_MAIN_MENU"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
+
+    // Sends the response message
+    await chatbotService.sendMessage(sender_psid, response);
+};
+
+let handleTalkAgent2 = async (sender_psid, received_message) => {
+
+    let response;
+
+    // Check if the message contains text
+    if ((received_message.text)) {
+        // Create the payload for a basic text message
+        name=received_message.text;
+
+        //use ZenDesk api to open ticket with this email
+
+        let ticketTemplate = {
+            "ticket": {
+                "subject":   "Hello",
+                "comment":   { "body": "Some question" },
+                "requester": { "locale_id": 8, "name": "Pablo", "email": "pablito@example.org" }
+            }
+        }
+
+        //if email is now successfully in the mailing list send success message
+        response = {
+            "attachment":{
+                "type":"template",
+                "payload":{
+                    "template_type":"button",
+                    "text": `Hi ${name} within 1-2 business days.`,
                     "buttons":[
                         {
                             "type": "postback",
@@ -392,13 +566,15 @@ let handleTalkAgent = async (sender_psid, received_message) => {
             }
         }
         call="";//reset the call if email was added
+
+        //can add another call to collect more data ex. TALK_AGENT_getName and TALK_AGENT_getDescription
     } else {
         response = {
             "attachment":{
                 "type":"template",
                 "payload":{
                     "template_type":"button",
-                    "text":"Please enter a valid email.",
+                    "text":"Error",
                     "buttons":[
                         {
                             "type": "postback",
@@ -424,6 +600,7 @@ module.exports = {
     getInfoOrderPage: getInfoOrderPage,
     setInfoOrder: setInfoOrder,
     handleSubEmail:handleSubEmail,
-    handleTalkAgent: handleTalkAgent
+    handleTalkAgent: handleTalkAgent,
+    handleTalkAgent2: handleTalkAgent2
 };
 

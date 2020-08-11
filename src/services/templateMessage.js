@@ -186,7 +186,7 @@ let sendLookupOrderTemplate = () =>{
                     },
                     {
                         "type": "postback",
-                        "title": "Main menu",
+                        "title": "Main Menu",
                         "payload": "BACK_TO_MAIN_MENU"
                     }
                 ]
@@ -211,7 +211,7 @@ let backToMainMenuTemplate = ()=>{
             },
             {
                 "content_type": "text",
-                "title": "Talk to an agent",
+                "title": "Talk to an Agent",
                 "payload": "TALK_AGENT",
             },
         ]
@@ -244,7 +244,7 @@ let sendSubEmailTemplate = ()=>{
             "type":"template",
             "payload":{
                 "template_type":"button",
-                "text":"Please enter you email address in the chat.",
+                "text":"Please enter your email address in the chat.",
                 "buttons":[
                     {
                         "type": "postback",
